@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# SYSLIB0014: Type or member is obsolete
+dotnet_diagnostic.SYSLIB0014.severity = none
+
+# CS8602: Dereference of a possibly null reference.
+dotnet_diagnostic.CS8602.severity = none
