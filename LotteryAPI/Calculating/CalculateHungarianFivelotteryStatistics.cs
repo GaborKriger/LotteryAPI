@@ -19,8 +19,8 @@ namespace LotteryAPI.Calculating
         {
             DownloadFile();
             GetResultsList();
+            StatisticsCalculate();
         }
-
 
         private void DownloadFile()
         {
@@ -74,6 +74,91 @@ namespace LotteryAPI.Calculating
                 {
                     _context.Add(hflrs[i]);
                     _context.SaveChanges();
+                }
+            }
+        }
+        private void StatisticsCalculate()
+        {
+            var results = _context.HungarianFiveLotteryResults.ToList();
+
+            Task AvargeNumberStatisticsTask = Task.Factory.StartNew(() => AvargeNumberStatistics(results));
+            Task AvargeNumberStatisticsYearlyTask = Task.Factory.StartNew(() => AvargeNumberStatisticsYearly(results));
+
+            Task.WaitAll(AvargeNumberStatisticsTask, AvargeNumberStatisticsYearlyTask);
+            _context.SaveChanges();
+        }
+
+        private void AvargeNumberStatistics(List<HungarianFiveLotteryResults> results)
+        {
+            int sum = 0;
+            int ctn = 0;
+            foreach (var result in results)
+            {
+                sum = sum + 
+                    result.FirstNumber + result.SecondNumber + result.ThirdNumber + result.FourthNumber + result.FifthNumber;
+                ctn += 5;
+            }
+
+            if (_context.HungarianFiveLotteryAvarge.Any())
+            {
+                var avg = _context.HungarianFiveLotteryAvarge.FirstOrDefault();
+                avg.Avarge = sum / ctn;
+            }
+            else
+            {
+                var avg = new HungarianFiveLotteryAvarge
+                {
+                    Avarge = sum / ctn
+                };
+                _context.HungarianFiveLotteryAvarge.Add(avg);
+            }
+        }
+
+        private void AvargeNumberStatisticsYearly(List<HungarianFiveLotteryResults> results)
+        {
+            HashSet<int> years = new();
+            foreach (var result in results)
+            {
+                years.Add(result.Year);
+            }
+
+            Dictionary<int, int> avargeYearly = new();
+            foreach (var year in years)
+            {
+                int sum = 0;
+                int ctn = 0;
+                foreach (var result in results)
+                {
+                    if (result.Year == year)
+                    {
+                        sum = sum +
+                            result.FirstNumber + result.SecondNumber + result.ThirdNumber + result.FourthNumber + result.FifthNumber;
+                        ctn += 5;
+                    }
+                }
+                avargeYearly[year] = sum / ctn;
+            }
+
+            foreach (var key in avargeYearly.Keys)
+            {
+                var year = new HungarianFiveLotteryAvargeYearly();
+                if (_context.HungarianFiveLotteryAvargeYearly.Any())
+                {
+                    year = _context.HungarianFiveLotteryAvargeYearly.
+                        Where(x => x.Year == key).FirstOrDefault();  
+                }
+
+                if (year == null)
+                {
+                    _context.HungarianFiveLotteryAvargeYearly.Add(new HungarianFiveLotteryAvargeYearly
+                    {
+                        Year = key,
+                        Avarge = avargeYearly[key]
+                    });
+                }
+                else
+                {
+                    year.Avarge = avargeYearly[key];
                 }
             }
         }
